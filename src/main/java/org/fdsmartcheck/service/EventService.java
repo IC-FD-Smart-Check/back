@@ -6,7 +6,9 @@ import org.fdsmartcheck.model.Event;
 import org.fdsmartcheck.model.User;
 import org.fdsmartcheck.model.enums.EventStatus;
 import org.fdsmartcheck.repository.EventRepository;
+import org.fdsmartcheck.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,7 +23,7 @@ import java.util.stream.Collectors;
 public class EventService {
 
     private final EventRepository eventRepository;
-    // private final UserRepository userRepository; //TODO: injetar repositorio de usuario
+    private final UserRepository userRepository;
 
     @Transactional
     public EventResponse createEvent(EventRequest request) {
@@ -29,8 +31,7 @@ public class EventService {
 
         String uniqueQrCode = "EVT-" + UUID.randomUUID().toString();
 
-        //TODO: implementar busca real do usuário logado via SecurityContext ou jwt
-        User currentUser = new User();
+        User currentUser = getCurrentUser();
 
         Event event = Event.builder()
                 .title(request.getTitle())
@@ -89,6 +90,13 @@ public class EventService {
     private Event findEventOrThrow(String id) {
         return eventRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado"));
+    }
+
+    private User getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário autenticado não encontrado na base de dados."));
     }
 
     private void validateDates(EventRequest request) {
