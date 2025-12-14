@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -20,34 +22,37 @@ public class EventController {
 
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents() {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(eventService.getAllEvents());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<EventResponse> getEventById(@PathVariable String id) {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(eventService.getEventById(id));
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventRequest request) {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+        EventResponse createdEvent = eventService.createEvent(request);
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(createdEvent.getId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(createdEvent);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EventResponse> updateEvent(@PathVariable String id, @Valid @RequestBody EventRequest request) {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(eventService.updateEvent(id, request));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteEvent(@PathVariable String id) {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+        eventService.deleteEvent(id);
+        return ResponseEntity.noContent().build();
     }
 }
