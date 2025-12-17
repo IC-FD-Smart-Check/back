@@ -2,6 +2,7 @@ package org.fdsmartcheck.service;
 
 import org.fdsmartcheck.dto.request.ForgotPasswordRequest;
 import org.fdsmartcheck.dto.request.LoginRequest;
+import org.fdsmartcheck.dto.request.UserRequest;
 import org.fdsmartcheck.dto.response.LoginResponse;
 import org.fdsmartcheck.dto.response.UserResponse;
 import org.fdsmartcheck.exception.BadRequestException;
@@ -14,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,6 +25,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordEncoder passwordEncoder;
 
     public LoginResponse login(LoginRequest request) {
         // Autenticar usuário
