@@ -10,4 +10,5 @@ import java.util.List;
 public interface SubEventRepository extends JpaRepository<SubEvent, String> {
 
     List<SubEvent> findByEventId(String eventId);
+
 }

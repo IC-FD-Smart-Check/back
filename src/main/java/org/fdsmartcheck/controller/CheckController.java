@@ -1,6 +1,7 @@
 package org.fdsmartcheck.controller;
 
 import org.fdsmartcheck.dto.request.CheckRequest;
+import org.fdsmartcheck.dto.response.CheckInfoResponse;
 import org.fdsmartcheck.dto.response.CheckResponse;
 import org.fdsmartcheck.service.CheckService;
 import jakarta.validation.Valid;
@@ -35,5 +36,11 @@ public class CheckController {
     public ResponseEntity<List<CheckResponse>> getChecksByEvent(@PathVariable String eventId) {
         List<CheckResponse> checks = checkService.getChecksByEventId(eventId);
         return ResponseEntity.ok(checks);
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<CheckInfoResponse> getCheckInfo(@RequestParam String qrCode) {
+        CheckInfoResponse info = checkService.getCheckInfo(qrCode);
+        return ResponseEntity.ok(info);
     }
 }

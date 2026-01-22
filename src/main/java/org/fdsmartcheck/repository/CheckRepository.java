@@ -13,4 +13,7 @@ public interface CheckRepository extends JpaRepository<Check, String> {
     List<Check> findByUserId(String userId);
     Optional<Check> findByEventIdAndUserId(String eventId, String userId);
     Boolean existsByEventIdAndUserId(String eventId, String userId);
+
+    Optional<Check> findBySubEventIdAndUserId(String subEventId, String userId);
+    Boolean existsBySubEventIdAndUserId(String subEventId, String userId);
 }

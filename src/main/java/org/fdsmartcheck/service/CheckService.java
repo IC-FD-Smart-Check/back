@@ -2,6 +2,7 @@ package org.fdsmartcheck.service;
 
 import lombok.RequiredArgsConstructor;
 import org.fdsmartcheck.dto.request.CheckRequest;
+import org.fdsmartcheck.dto.response.CheckInfoResponse;
 import org.fdsmartcheck.dto.response.CheckResponse;
 import org.fdsmartcheck.model.Check;
 import org.fdsmartcheck.model.Event;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,27 +50,30 @@ public class CheckService {
 
     @Transactional
     protected CheckResponse performCheckIn(Event event, User user, CheckRequest request) {
+        // Buscar SubEvent
+        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
+
         // Verificar se já existe check-in
-        if (checkRepository.existsByEventIdAndUserId(event.getId(), user.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste evento");
+        if (checkRepository.existsBySubEventIdAndUserId(subEvent.getId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste sub-evento");
         }
 
-        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
         LocalDateTime now = LocalDateTime.now();
 
-//        if (now.isBefore(subEvent.getCheckinStart())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-//                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
-//        }
-//
-//        if (now.isAfter(subEvent.getCheckinEnd())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-//                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
-//        }
+        if (now.isBefore(subEvent.getCheckinStart())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
+        }
+
+        if (now.isAfter(subEvent.getCheckinEnd())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
+        }
 
         // Criar registro de check-in
         Check check = Check.builder()
                 .event(event)
+                .subEvent(subEvent)
                 .user(user)
                 .checkinTime(LocalDateTime.now())
                 .checkinLatitude(request.getLatitude())
@@ -94,33 +99,32 @@ public class CheckService {
 
     @Transactional
     protected CheckResponse performCheckOut(Event event, User user, CheckRequest request) {
+        // Buscar SubEvent
+        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
+
         // Buscar check existente
-        Check check = checkRepository.findByEventIdAndUserId(event.getId(), user.getId())
+        Check check = checkRepository.findBySubEventIdAndUserId(subEvent.getId(), user.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
                         "Você precisa fazer check-in antes de fazer checkout"
                 ));
 
-        // Verificar se já fez checkout
         if (check.getCheckoutTime() != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou checkout neste evento");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou checkout neste sub-evento");
         }
 
-        // VALIDAR JANELA DE CHECKOUT
-        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
         LocalDateTime now = LocalDateTime.now();
 
-//        if (now.isBefore(subEvent.getCheckoutStart())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-//                    "Checkout ainda não está disponível. Disponível a partir de " + subEvent.getCheckoutStart());
-//        }
-//
-//        if (now.isAfter(subEvent.getCheckoutEnd())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-//                    "Período de checkout encerrado. Encerrou em " + subEvent.getCheckoutEnd());
-//        }
+        if (now.isBefore(subEvent.getCheckoutStart())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Checkout ainda não está disponível. Disponível a partir de " + subEvent.getCheckoutStart());
+        }
 
-        // Atualizar com checkout
+        if (now.isAfter(subEvent.getCheckoutEnd())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Período de checkout encerrado. Encerrou em " + subEvent.getCheckoutEnd());
+        }
+
         check.setCheckoutTime(LocalDateTime.now());
         check.setCheckoutLatitude(request.getLatitude());
         check.setCheckoutLongitude(request.getLongitude());
@@ -140,7 +144,6 @@ public class CheckService {
                 .message("Checkout realizado com sucesso!")
                 .build();
     }
-
     @Transactional(readOnly = true)
     public List<CheckResponse> getCheckHistory() {
         User currentUser = getCurrentUser();
@@ -192,6 +195,106 @@ public class CheckService {
                 .message(type.equals("CHECKOUT")
                         ? "Checkout realizado"
                         : "Check-in realizado")
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public CheckInfoResponse getCheckInfo(String qrCodeData) {
+        // 1. Buscar o usuário atual
+        User currentUser = getCurrentUser();
+
+        // 2. Validar QR Code e buscar SubEvent
+        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(qrCodeData);
+        Event event = subEvent.getEvent();
+
+        // 3. Verificar se já existe check para este SubEvent
+        Optional<Check> existingCheck = checkRepository.findBySubEventIdAndUserId(
+                subEvent.getId(),
+                currentUser.getId()
+        );
+
+        // 4. Determinar o tipo de ação e validações
+        LocalDateTime now = LocalDateTime.now();
+        String actionType;
+        String message;
+        Boolean canPerformAction = true;
+        String validationMessage = null;
+
+        Boolean hasCheckedIn = false;
+        LocalDateTime checkinTime = null;
+        Boolean hasCheckedOut = false;
+        LocalDateTime checkoutTime = null;
+
+        if (existingCheck.isEmpty()) {
+            // Usuário ainda não fez check-in
+            actionType = "CHECKIN";
+            message = "Você está prestes a fazer check-in neste evento";
+
+            // Validar janela de check-in
+            if (now.isBefore(subEvent.getCheckinStart())) {
+                canPerformAction = false;
+                validationMessage = "Check-in ainda não está disponível. Disponível a partir de " +
+                        subEvent.getCheckinStart().toString();
+            } else if (now.isAfter(subEvent.getCheckinEnd())) {
+                canPerformAction = false;
+                validationMessage = "Período de check-in encerrado. Encerrou em " +
+                        subEvent.getCheckinEnd().toString();
+            }
+        } else {
+            Check check = existingCheck.get();
+            hasCheckedIn = true;
+            checkinTime = check.getCheckinTime();
+
+            if (check.getCheckoutTime() == null) {
+                // Usuário já fez check-in, mas ainda não fez checkout
+                actionType = "CHECKOUT";
+                message = "Você já fez check-in. Agora pode fazer checkout";
+                hasCheckedOut = false;
+
+                // Validar janela de checkout
+                if (now.isBefore(subEvent.getCheckoutStart())) {
+                    canPerformAction = false;
+                    validationMessage = "Checkout ainda não está disponível. Disponível a partir de " +
+                            subEvent.getCheckoutStart().toString();
+                } else if (now.isAfter(subEvent.getCheckoutEnd())) {
+                    canPerformAction = false;
+                    validationMessage = "Período de checkout encerrado. Encerrou em " +
+                            subEvent.getCheckoutEnd().toString();
+                }
+            } else {
+                // Usuário já fez check-in E checkout
+                actionType = "COMPLETED";
+                message = "Você já completou check-in e checkout neste evento";
+                hasCheckedOut = true;
+                checkoutTime = check.getCheckoutTime();
+                canPerformAction = false;
+                validationMessage = "Você já realizou check-in e checkout neste evento";
+            }
+        }
+
+        // 5. Montar resposta
+        return CheckInfoResponse.builder()
+                .eventId(event.getId())
+                .eventTitle(event.getTitle())
+                .eventDescription(event.getDescription())
+                .subEventId(subEvent.getId())
+                .subEventTitle(subEvent.getTitle())
+                .subEventDescription(subEvent.getDescription())
+                .locationDescription(subEvent.getLocationDescription())
+                .startDate(subEvent.getStartDate())
+                .endDate(subEvent.getEndDate())
+                .checkinStart(subEvent.getCheckinStart())
+                .checkinEnd(subEvent.getCheckinEnd())
+                .checkoutStart(subEvent.getCheckoutStart())
+                .checkoutEnd(subEvent.getCheckoutEnd())
+                .actionType(actionType)
+                .message(message)
+                .hasCheckedIn(hasCheckedIn)
+                .checkinTime(checkinTime)
+                .hasCheckedOut(hasCheckedOut)
+                .checkoutTime(checkoutTime)
+                .canPerformAction(canPerformAction)
+                .validationMessage(validationMessage)
                 .build();
     }
 }
