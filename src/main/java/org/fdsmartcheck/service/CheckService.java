@@ -56,15 +56,15 @@ public class CheckService {
         SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
         LocalDateTime now = LocalDateTime.now();
 
-        if (now.isBefore(subEvent.getCheckinStart())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
-        }
-
-        if (now.isAfter(subEvent.getCheckinEnd())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
-        }
+//        if (now.isBefore(subEvent.getCheckinStart())) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+//                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
+//        }
+//
+//        if (now.isAfter(subEvent.getCheckinEnd())) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+//                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
+//        }
 
         // Criar registro de check-in
         Check check = Check.builder()
@@ -110,15 +110,15 @@ public class CheckService {
         SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
         LocalDateTime now = LocalDateTime.now();
 
-        if (now.isBefore(subEvent.getCheckoutStart())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Checkout ainda não está disponível. Disponível a partir de " + subEvent.getCheckoutStart());
-        }
-
-        if (now.isAfter(subEvent.getCheckoutEnd())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Período de checkout encerrado. Encerrou em " + subEvent.getCheckoutEnd());
-        }
+//        if (now.isBefore(subEvent.getCheckoutStart())) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+//                    "Checkout ainda não está disponível. Disponível a partir de " + subEvent.getCheckoutStart());
+//        }
+//
+//        if (now.isAfter(subEvent.getCheckoutEnd())) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+//                    "Período de checkout encerrado. Encerrou em " + subEvent.getCheckoutEnd());
+//        }
 
         // Atualizar com checkout
         check.setCheckoutTime(LocalDateTime.now());

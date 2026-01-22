@@ -1,6 +1,7 @@
 package org.fdsmartcheck.dto.request;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -20,7 +21,6 @@ public class EventRequest {
     private Double longitude;
 
     @NotNull(message = "Data de início é obrigatória")
-    @Future(message = "Data de início deve ser futura")
     private LocalDateTime startDate;
 
     @NotNull(message = "Data de término é obrigatória")
