@@ -53,6 +53,19 @@ public class CheckService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste evento");
         }
 
+        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isBefore(subEvent.getCheckinStart())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
+        }
+
+        if (now.isAfter(subEvent.getCheckinEnd())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
+        }
+
         // Criar registro de check-in
         Check check = Check.builder()
                 .event(event)
@@ -68,8 +81,12 @@ public class CheckService {
         return CheckResponse.builder()
                 .id(savedCheck.getId())
                 .eventId(event.getId())
+                .eventTitle(event.getTitle())
                 .userId(user.getId())
+                .userName(user.getName())
                 .type("CHECKIN")
+                .checkinTime(savedCheck.getCheckinTime())
+                .checkoutTime(null)
                 .createdAt(savedCheck.getCheckinTime())
                 .message("Check-in realizado com sucesso!")
                 .build();
@@ -89,6 +106,20 @@ public class CheckService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou checkout neste evento");
         }
 
+        // VALIDAR JANELA DE CHECKOUT
+        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isBefore(subEvent.getCheckoutStart())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Checkout ainda não está disponível. Disponível a partir de " + subEvent.getCheckoutStart());
+        }
+
+        if (now.isAfter(subEvent.getCheckoutEnd())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Período de checkout encerrado. Encerrou em " + subEvent.getCheckoutEnd());
+        }
+
         // Atualizar com checkout
         check.setCheckoutTime(LocalDateTime.now());
         check.setCheckoutLatitude(request.getLatitude());
@@ -99,8 +130,12 @@ public class CheckService {
         return CheckResponse.builder()
                 .id(updatedCheck.getId())
                 .eventId(event.getId())
+                .eventTitle(event.getTitle())
                 .userId(user.getId())
+                .userName(user.getName())
                 .type("CHECKOUT")
+                .checkinTime(updatedCheck.getCheckinTime())
+                .checkoutTime(updatedCheck.getCheckoutTime())
                 .createdAt(updatedCheck.getCheckoutTime())
                 .message("Checkout realizado com sucesso!")
                 .build();
