@@ -6,7 +6,10 @@ import org.fdsmartcheck.service.CheckService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/checkin")
@@ -17,13 +20,20 @@ public class CheckController {
 
     @PostMapping
     public ResponseEntity<CheckResponse> performCheck(@Valid @RequestBody CheckRequest request) {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+        CheckResponse response = checkService.performCheck(request);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/history")
-    public ResponseEntity<?> getCheckHistory() {
-        // TODO: Implementar lógica
-        return ResponseEntity.ok().build();
+    public ResponseEntity<List<CheckResponse>> getCheckHistory() {
+        List<CheckResponse> history = checkService.getCheckHistory();
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/event/{eventId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<CheckResponse>> getChecksByEvent(@PathVariable String eventId) {
+        List<CheckResponse> checks = checkService.getChecksByEventId(eventId);
+        return ResponseEntity.ok(checks);
     }
 }

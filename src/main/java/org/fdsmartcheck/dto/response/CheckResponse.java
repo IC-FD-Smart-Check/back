@@ -14,8 +14,12 @@ import java.time.LocalDateTime;
 public class CheckResponse {
     private String id;
     private String eventId;
+    private String eventTitle;
     private String userId;
+    private String userName;
     private String type;
+    private LocalDateTime checkinTime;
+    private LocalDateTime checkoutTime;
     private LocalDateTime createdAt;
     private String message;
 }
