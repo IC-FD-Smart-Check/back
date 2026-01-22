@@ -145,6 +145,12 @@ public class CheckService {
     public List<CheckResponse> getCheckHistory() {
         User currentUser = getCurrentUser();
 
+        if(currentUser.getRole().toString() ==  "ADMIN") {
+            return checkRepository.findAll().stream()
+                    .map(this::toResponse)
+                    .collect(Collectors.toList());
+        }
+
         return checkRepository.findByUserId(currentUser.getId()).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
