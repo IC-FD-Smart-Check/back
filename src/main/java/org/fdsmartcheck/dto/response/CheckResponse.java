@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CheckInResponse {
+public class CheckResponse {
     private String id;
     private String eventId;
     private String userId;

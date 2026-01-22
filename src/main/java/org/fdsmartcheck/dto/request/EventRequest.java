@@ -15,8 +15,9 @@ public class EventRequest {
 
     private String description;
 
-    @NotBlank(message = "Localização é obrigatória")
-    private String location;
+    private Double latitude;
+
+    private Double longitude;
 
     @NotNull(message = "Data de início é obrigatória")
     @Future(message = "Data de início deve ser futura")
@@ -24,10 +25,4 @@ public class EventRequest {
 
     @NotNull(message = "Data de término é obrigatória")
     private LocalDateTime endDate;
-
-    @NotNull(message = "Início do check-in é obrigatório")
-    private LocalDateTime checkinStart;
-
-    @NotNull(message = "Término do check-in é obrigatório")
-    private LocalDateTime checkinEnd;
 }

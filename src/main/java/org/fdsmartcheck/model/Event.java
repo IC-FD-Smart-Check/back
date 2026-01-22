@@ -29,23 +29,17 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
-    private String location;
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
-
-    @Column(name = "checkin_start", nullable = false)
-    private LocalDateTime checkinStart;
-
-    @Column(name = "checkin_end", nullable = false)
-    private LocalDateTime checkinEnd;
-
-    @Column(name = "qr_code", unique = true)
-    private String qrCode;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

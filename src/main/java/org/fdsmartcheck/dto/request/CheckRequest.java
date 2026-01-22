@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
-public class CheckInRequest {
+public class CheckRequest {
 
     @NotBlank(message = "QR Code é obrigatório")
     private String qrCode;

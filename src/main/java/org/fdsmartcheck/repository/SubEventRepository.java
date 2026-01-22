@@ -1,14 +1,13 @@
 package org.fdsmartcheck.repository;
 
-import org.fdsmartcheck.model.Event;
-import org.fdsmartcheck.model.enums.EventStatus;
+import org.fdsmartcheck.model.SubEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
-public interface EventRepository extends JpaRepository<Event, String> {
+public interface SubEventRepository extends JpaRepository<SubEvent, String> {
 
+    List<SubEvent> findByEventId(String eventId);
 }
