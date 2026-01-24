@@ -34,6 +34,7 @@ public class SubEventService {
                 .description(request.getDescription())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
+                .radius(request.getRadius())
                 .locationDescription(request.getLocationDescription())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
@@ -70,6 +71,7 @@ public class SubEventService {
         subEvent.setDescription(request.getDescription());
         subEvent.setLatitude(request.getLatitude());
         subEvent.setLongitude(request.getLongitude());
+        subEvent.setRadius(request.getRadius());
         subEvent.setLocationDescription(request.getLocationDescription());
         subEvent.setStartDate(request.getStartDate());
         subEvent.setEndDate(request.getEndDate());
@@ -137,6 +139,7 @@ public class SubEventService {
                 .description(subEvent.getDescription())
                 .latitude(subEvent.getLatitude())
                 .longitude(subEvent.getLongitude())
+                .radius(subEvent.getRadius())
                 .locationDescription(subEvent.getLocationDescription())
                 .startDate(subEvent.getStartDate())
                 .endDate(subEvent.getEndDate())

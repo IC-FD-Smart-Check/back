@@ -17,6 +17,7 @@ public class SubEventResponse {
     private String description;
     private Double latitude;
     private Double longitude;
+    private Double radius;
     private String locationDescription;
     private LocalDateTime startDate;
     private LocalDateTime endDate;

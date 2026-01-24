@@ -58,17 +58,17 @@ public class CheckService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste sub-evento");
         }
 
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        if (now.isBefore(subEvent.getCheckinStart())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-//                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
-//        }
-//
-//        if (now.isAfter(subEvent.getCheckinEnd())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-//                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
-//        }
+        LocalDateTime now = LocalDateTime.now();
+
+        if (now.isBefore(subEvent.getCheckinStart())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Check-in ainda não está disponível. Disponível a partir de " + subEvent.getCheckinStart());
+        }
+
+        if (now.isAfter(subEvent.getCheckinEnd())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
+        }
 
         // Criar registro de check-in
         Check check = Check.builder()

@@ -18,6 +18,8 @@ public class SubEventRequest {
 
     private Double longitude;
 
+    private Double radius;
+
     private String locationDescription;
 
     @NotNull(message = "Data de início é obrigatória")

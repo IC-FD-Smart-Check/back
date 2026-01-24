@@ -20,6 +20,8 @@ public class EventRequest {
 
     private Double longitude;
 
+    private Double radius;
+
     @NotNull(message = "Data de início é obrigatória")
     private LocalDateTime startDate;
 

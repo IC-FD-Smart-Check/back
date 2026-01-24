@@ -18,6 +18,7 @@ public class EventResponse {
     private String description;
     private Double latitude;
     private Double longitude;
+    private Double radius;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private EventStatus status;

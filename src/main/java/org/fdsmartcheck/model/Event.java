@@ -35,6 +35,9 @@ public class Event {
     @Column(name = "longitude")
     private Double longitude;
 
+    @Column(name = "radius")
+    private Double radius;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 

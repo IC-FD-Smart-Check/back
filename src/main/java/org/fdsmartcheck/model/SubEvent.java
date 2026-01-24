@@ -34,6 +34,9 @@ public class SubEvent {
     @Column(name = "longitude")
     private Double longitude;
 
+    @Column(name = "radius")
+    private Double radius;
+
     @Column(columnDefinition = "TEXT")
     private String locationDescription;
 
