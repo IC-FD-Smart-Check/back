@@ -9,8 +9,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "checkins", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"event_id", "user_id"})
+@Table(name = "checks", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"sub_event_id", "user_id"})
 })
 @EntityListeners(AuditingEntityListener.class)
 @Getter
@@ -23,10 +23,6 @@ public class Check {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sub_event_id", nullable = false)

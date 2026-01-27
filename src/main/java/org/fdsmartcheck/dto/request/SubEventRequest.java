@@ -2,6 +2,7 @@ package org.fdsmartcheck.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -18,7 +19,8 @@ public class SubEventRequest {
 
     private Double longitude;
 
-    private Double radius;
+    @Positive(message = "Raio deve ser maior que zero")
+    private Double radius; // Raio em metros (opcional, usa default se não informado)
 
     private String locationDescription;
 

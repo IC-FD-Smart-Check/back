@@ -21,12 +21,10 @@ public class SubEventResponse {
     private String locationDescription;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
-
     private LocalDateTime checkinStart;
     private LocalDateTime checkinEnd;
     private LocalDateTime checkoutStart;
     private LocalDateTime checkoutEnd;
-
     private String eventId;
     private String eventTitle;
 }

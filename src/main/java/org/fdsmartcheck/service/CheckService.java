@@ -28,31 +28,31 @@ public class CheckService {
     private final CheckRepository checkRepository;
     private final UserRepository userRepository;
     private final QRCodeService qrCodeService;
+    private final GeoSecurityService geoSecurityService;
 
     @Transactional
     public CheckResponse performCheck(CheckRequest request) {
-        // Buscar o usuário atual
         User currentUser = getCurrentUser();
-
-        // Validar QR Code e buscar SubEvent
         SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
-        Event event = subEvent.getEvent();
 
-        // Verificar o tipo de ação (CHECKIN ou CHECKOUT)
+        geoSecurityService.validateGeoPayload(
+                request,
+                subEvent.getLatitude(),
+                subEvent.getLongitude(),
+                subEvent.getRadius()
+        );
+
         if ("CHECKIN".equalsIgnoreCase(request.getType())) {
-            return performCheckIn(event, currentUser, request);
+            return performCheckIn(subEvent, currentUser, request);
         } else if ("CHECKOUT".equalsIgnoreCase(request.getType())) {
-            return performCheckOut(event, currentUser, request);
+            return performCheckOut(subEvent, currentUser, request);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo inválido. Use CHECKIN ou CHECKOUT");
         }
     }
 
     @Transactional
-    protected CheckResponse performCheckIn(Event event, User user, CheckRequest request) {
-        // Buscar SubEvent
-        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
-
+    protected CheckResponse performCheckIn(SubEvent subEvent, User user, CheckRequest request) {
         // Verificar se já existe check-in
         if (checkRepository.existsBySubEventIdAndUserId(subEvent.getId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste sub-evento");
@@ -70,39 +70,23 @@ public class CheckService {
                     "Período de check-in encerrado. Encerrou em " + subEvent.getCheckinEnd());
         }
 
-        // Criar registro de check-in
+        // Criar registro (usando coordenadas do geoPayload)
         Check check = Check.builder()
-                .event(event)
                 .subEvent(subEvent)
                 .user(user)
                 .checkinTime(LocalDateTime.now())
-                .checkinLatitude(request.getLatitude())
-                .checkinLongitude(request.getLongitude())
+                .checkinLatitude(request.getGeoPayload().getLatitude())
+                .checkinLongitude(request.getGeoPayload().getLongitude())
                 .isPresent(true)
                 .build();
 
         Check savedCheck = checkRepository.save(check);
 
-        return CheckResponse.builder()
-                .id(savedCheck.getId())
-                .eventId(event.getId())
-                .eventTitle(event.getTitle())
-                .userId(user.getId())
-                .userName(user.getName())
-                .type("CHECKIN")
-                .checkinTime(savedCheck.getCheckinTime())
-                .checkoutTime(null)
-                .createdAt(savedCheck.getCheckinTime())
-                .message("Check-in realizado com sucesso!")
-                .build();
+        return toResponse(savedCheck);
     }
 
     @Transactional
-    protected CheckResponse performCheckOut(Event event, User user, CheckRequest request) {
-        // Buscar SubEvent
-        SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
-
-        // Buscar check existente
+    protected CheckResponse performCheckOut(SubEvent subEvent, User user, CheckRequest request) {
         Check check = checkRepository.findBySubEventIdAndUserId(subEvent.getId(), user.getId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
@@ -126,29 +110,19 @@ public class CheckService {
         }
 
         check.setCheckoutTime(LocalDateTime.now());
-        check.setCheckoutLatitude(request.getLatitude());
-        check.setCheckoutLongitude(request.getLongitude());
+        check.setCheckoutLatitude(request.getGeoPayload().getLatitude());
+        check.setCheckoutLongitude(request.getGeoPayload().getLongitude());
 
         Check updatedCheck = checkRepository.save(check);
 
-        return CheckResponse.builder()
-                .id(updatedCheck.getId())
-                .eventId(event.getId())
-                .eventTitle(event.getTitle())
-                .userId(user.getId())
-                .userName(user.getName())
-                .type("CHECKOUT")
-                .checkinTime(updatedCheck.getCheckinTime())
-                .checkoutTime(updatedCheck.getCheckoutTime())
-                .createdAt(updatedCheck.getCheckoutTime())
-                .message("Checkout realizado com sucesso!")
-                .build();
+        return toResponse(updatedCheck);
     }
+
     @Transactional(readOnly = true)
     public List<CheckResponse> getCheckHistory() {
         User currentUser = getCurrentUser();
 
-        if(currentUser.getRole().toString() ==  "ADMIN") {
+        if ("ADMIN".equals(currentUser.getRole().toString())) {
             return checkRepository.findAll().stream()
                     .map(this::toResponse)
                     .collect(Collectors.toList());
@@ -166,56 +140,17 @@ public class CheckService {
                 .collect(Collectors.toList());
     }
 
-    private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.UNAUTHORIZED,
-                        "Usuário autenticado não encontrado"
-                ));
-    }
-
-    private CheckResponse toResponse(Check check) {
-        String type = check.getCheckoutTime() != null ? "CHECKOUT" : "CHECKIN";
-        LocalDateTime actionTime = check.getCheckoutTime() != null
-                ? check.getCheckoutTime()
-                : check.getCheckinTime();
-
-        return CheckResponse.builder()
-                .id(check.getId())
-                .eventId(check.getEvent().getId())
-                .eventTitle(check.getEvent().getTitle())
-                .subEventId(check.getSubEvent().getId())
-                .subEventTitle(check.getSubEvent().getTitle())
-                .userId(check.getUser().getId())
-                .userName(check.getUser().getName())
-                .type(type)
-                .checkinTime(check.getCheckinTime())
-                .checkoutTime(check.getCheckoutTime())
-                .createdAt(actionTime)
-                .message(type.equals("CHECKOUT")
-                        ? "Checkout realizado"
-                        : "Check-in realizado")
-                .build();
-    }
-
     @Transactional(readOnly = true)
     public CheckInfoResponse getCheckInfo(String qrCodeData) {
-        // 1. Buscar o usuário atual
         User currentUser = getCurrentUser();
-
-        // 2. Validar QR Code e buscar SubEvent
         SubEvent subEvent = qrCodeService.validateAndGetSubEvent(qrCodeData);
         Event event = subEvent.getEvent();
 
-        // 3. Verificar se já existe check para este SubEvent
         Optional<Check> existingCheck = checkRepository.findBySubEventIdAndUserId(
                 subEvent.getId(),
                 currentUser.getId()
         );
 
-        // 4. Determinar o tipo de ação e validações
         LocalDateTime now = LocalDateTime.now();
         String actionType;
         String message;
@@ -228,11 +163,9 @@ public class CheckService {
         LocalDateTime checkoutTime = null;
 
         if (existingCheck.isEmpty()) {
-            // Usuário ainda não fez check-in
             actionType = "CHECKIN";
             message = "Você está prestes a fazer check-in neste evento";
 
-            // Validar janela de check-in
             if (now.isBefore(subEvent.getCheckinStart())) {
                 canPerformAction = false;
                 validationMessage = "Check-in ainda não está disponível. Disponível a partir de " +
@@ -248,12 +181,10 @@ public class CheckService {
             checkinTime = check.getCheckinTime();
 
             if (check.getCheckoutTime() == null) {
-                // Usuário já fez check-in, mas ainda não fez checkout
                 actionType = "CHECKOUT";
                 message = "Você já fez check-in. Agora pode fazer checkout";
                 hasCheckedOut = false;
 
-                // Validar janela de checkout
                 if (now.isBefore(subEvent.getCheckoutStart())) {
                     canPerformAction = false;
                     validationMessage = "Checkout ainda não está disponível. Disponível a partir de " +
@@ -264,7 +195,6 @@ public class CheckService {
                             subEvent.getCheckoutEnd().toString();
                 }
             } else {
-                // Usuário já fez check-in E checkout
                 actionType = "COMPLETED";
                 message = "Você já completou check-in e checkout neste evento";
                 hasCheckedOut = true;
@@ -274,7 +204,6 @@ public class CheckService {
             }
         }
 
-        // 5. Montar resposta
         return CheckInfoResponse.builder()
                 .eventId(event.getId())
                 .eventTitle(event.getTitle())
@@ -297,6 +226,43 @@ public class CheckService {
                 .checkoutTime(checkoutTime)
                 .canPerformAction(canPerformAction)
                 .validationMessage(validationMessage)
+                .build();
+    }
+
+    private User getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Usuário autenticado não encontrado"
+                ));
+    }
+
+    private CheckResponse toResponse(Check check) {
+        String type = check.getCheckoutTime() != null ? "CHECKOUT" : "CHECKIN";
+        LocalDateTime actionTime = check.getCheckoutTime() != null
+                ? check.getCheckoutTime()
+                : check.getCheckinTime();
+
+        SubEvent subEvent = check.getSubEvent();
+        Event event = subEvent.getEvent();
+
+        return CheckResponse.builder()
+                .id(check.getId())
+                .eventId(event.getId())
+                .eventTitle(event.getTitle())
+                .subEventId(subEvent.getId())
+                .subEventTitle(subEvent.getTitle())
+                .userId(check.getUser().getId())
+                .userName(check.getUser().getName())
+                .type(type)
+                .checkinTime(check.getCheckinTime())
+                .checkoutTime(check.getCheckoutTime())
+                .createdAt(actionTime)
+                .message(type.equals("CHECKOUT")
+                        ? "Checkout realizado"
+                        : "Check-in realizado")
                 .build();
     }
 }
