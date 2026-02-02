@@ -35,11 +35,24 @@ public class CheckService {
         User currentUser = getCurrentUser();
         SubEvent subEvent = qrCodeService.validateAndGetSubEvent(request.getQrCode());
 
+        Double targetLat = subEvent.getLatitude();
+        Double targetLon = subEvent.getLongitude();
+        Double targetRadius = subEvent.getRadius();
+
+        if (targetLat == null || targetLon == null) {
+            Event parentEvent = subEvent.getEvent();
+            if (parentEvent != null) {
+                targetLat = parentEvent.getLatitude();
+                targetLon = parentEvent.getLongitude();
+                targetRadius = parentEvent.getRadius();
+            }
+        }
+
         geoSecurityService.validateGeoPayload(
                 request,
-                subEvent.getLatitude(),
-                subEvent.getLongitude(),
-                subEvent.getRadius()
+                targetLat,
+                targetLon,
+                targetRadius
         );
 
         if ("CHECKIN".equalsIgnoreCase(request.getType())) {
