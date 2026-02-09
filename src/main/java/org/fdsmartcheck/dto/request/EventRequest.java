@@ -16,6 +16,8 @@ public class EventRequest {
 
     private String description;
 
+    private String imageBase64;
+
     private Double latitude;
 
     private Double longitude;

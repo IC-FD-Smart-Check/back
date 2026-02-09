@@ -16,6 +16,7 @@ public class EventResponse {
     private String id;
     private String title;
     private String description;
+    private String imageBase64;
     private Double latitude;
     private Double longitude;
     private Double radius;
