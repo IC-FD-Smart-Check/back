@@ -34,6 +34,7 @@ public class EventService {
         Event event = Event.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
+                .imageBase64(request.getImageBase64())
                 .latitude(request.getLatitude())
                 .longitude(request.getLongitude())
                 .radius(request.getRadius())
@@ -68,6 +69,9 @@ public class EventService {
 
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
+        if (request.getImageBase64() != null && !request.getImageBase64().isEmpty()) {
+            event.setImageBase64(request.getImageBase64());
+        }
         event.setLatitude(request.getLatitude());
         event.setLongitude(request.getLongitude());
         event.setStartDate(request.getStartDate());
@@ -115,6 +119,7 @@ public class EventService {
                 .id(event.getId())
                 .title(event.getTitle())
                 .description(event.getDescription())
+                .imageBase64(event.getImageBase64())
                 .latitude(event.getLatitude())
                 .longitude(event.getLongitude())
                 .radius(event.getRadius())
