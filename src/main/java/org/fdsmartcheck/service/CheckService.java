@@ -9,6 +9,7 @@ import org.fdsmartcheck.model.Event;
 import org.fdsmartcheck.model.SubEvent;
 import org.fdsmartcheck.model.User;
 import org.fdsmartcheck.repository.CheckRepository;
+import org.fdsmartcheck.repository.SubscriptionRepository;
 import org.fdsmartcheck.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 public class CheckService {
 
     private final CheckRepository checkRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
     private final QRCodeService qrCodeService;
     private final GeoSecurityService geoSecurityService;
@@ -66,6 +68,11 @@ public class CheckService {
 
     @Transactional
     protected CheckResponse performCheckIn(SubEvent subEvent, User user, CheckRequest request) {
+        // Verificar inscrição
+        if (!subscriptionRepository.existsBySubEventIdAndUserId(subEvent.getId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não está inscrito neste subevento");
+        }
+
         // Verificar se já existe check-in
         if (checkRepository.existsBySubEventIdAndUserId(subEvent.getId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste sub-evento");
@@ -164,6 +171,11 @@ public class CheckService {
                 currentUser.getId()
         );
 
+        boolean isSubscribed = subscriptionRepository.existsBySubEventIdAndUserId(
+                subEvent.getId(),
+                currentUser.getId()
+        );
+
         LocalDateTime now = LocalDateTime.now();
         String actionType;
         String message;
@@ -175,7 +187,12 @@ public class CheckService {
         Boolean hasCheckedOut = false;
         LocalDateTime checkoutTime = null;
 
-        if (existingCheck.isEmpty()) {
+        if (!isSubscribed) {
+            actionType = "CHECKIN";
+            message = "Você não está inscrito neste subevento";
+            canPerformAction = false;
+            validationMessage = "Você não está inscrito neste subevento. Solicite a inscrição ao administrador.";
+        } else if (existingCheck.isEmpty()) {
             actionType = "CHECKIN";
             message = "Você está prestes a fazer check-in neste evento";
 
