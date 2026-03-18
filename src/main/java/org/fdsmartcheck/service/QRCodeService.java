@@ -32,10 +32,6 @@ public class QRCodeService {
 
         List<QRCode> qrCodes = qrCodeRepository.findBySubEventId(subEventId);
 
-        if (qrCodes.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nenhum QR Code encontrado para este SubEvent");
-        }
-
         return qrCodes.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

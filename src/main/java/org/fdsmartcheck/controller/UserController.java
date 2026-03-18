@@ -35,6 +35,12 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    // GET - busca usuarios por nome ou email
+    @GetMapping("/search")
+    public ResponseEntity<List<UserResponse>> searchUsers(@RequestParam String query) {
+        return ResponseEntity.ok(userService.searchUsers(query));
+    }
+
     // GET - busca usuario por id
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable String id) {

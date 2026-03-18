@@ -70,6 +70,14 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    // método searchUsers por nome ou email
+    public List<UserResponse> searchUsers(String query) {
+        return userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query).stream()
+                .filter(User::getIsActive)
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     // método getUserById
     public UserResponse getUserById(String id) {
         User user = userRepository.findById(id)

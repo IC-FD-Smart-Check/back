@@ -113,24 +113,12 @@ public class SubEventService {
                     "Início do checkout deve ser anterior ao término do checkout");
         }
 
-        // 4. Check-in deve estar dentro do período do evento
-        if (request.getCheckinStart().isBefore(request.getStartDate())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Check-in não pode começar antes do início do evento");
-        }
-
 //        TODO: ADICIONAR VALIDAÇÃO DE CHECKOUT PERMITIDO APOS 15 MINUTOS DO FINAL DO EVENTO
-        // 5. Checkout deve estar dentro do período do evento
+        // 4. Checkout deve estar dentro do período do evento
 //        if (request.getCheckoutEnd().isAfter(request.getEndDate())) {
 //            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 //                    "Checkout não pode terminar depois do fim do evento");
 //        }
-
-        // 6. Check-in deve terminar antes ou quando o checkout começar
-        if (request.getCheckinEnd().isAfter(request.getCheckoutStart())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Check-in deve terminar antes ou quando o checkout começar");
-        }
     }
 
     private SubEventResponse toResponse(SubEvent subEvent) {
