@@ -1,5 +1,6 @@
 package org.fdsmartcheck.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.fdsmartcheck.dto.request.CheckRequest;
@@ -13,6 +14,8 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Map;
+import java.util.TreeMap;
 
 @Service
 @RequiredArgsConstructor
@@ -67,7 +70,15 @@ public class GeoSecurityService {
      */
     private void validateSignature(CheckRequest request) {
         try {
-            String payloadJson = objectMapper.writeValueAsString(request.getGeoPayload());
+            Map<String, Object> map = objectMapper.convertValue(
+                    request.getGeoPayload(),
+                    new TypeReference<Map<String, Object>>() {}
+            );
+
+            TreeMap<String, Object> sortedMap = new TreeMap<>(map);
+
+            String payloadJson = objectMapper.writeValueAsString(sortedMap);
+
             String expectedSignature = generateSignature(payloadJson);
 
             if (!expectedSignature.equals(request.getSignature())) {
@@ -76,6 +87,8 @@ public class GeoSecurityService {
                         "Assinatura de geolocalização inválida. Possível tentativa de fraude."
                 );
             }
+        } catch (ResponseStatusException e) {
+            throw e;
         } catch (Exception e) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
