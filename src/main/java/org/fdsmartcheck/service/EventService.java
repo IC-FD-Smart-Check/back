@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -80,6 +81,13 @@ public class EventService {
         Event event = findEventOrThrow(id);
         event.setStatus(EventStatus.CANCELLED);
         eventRepository.save(event);
+    }
+
+    @Transactional(readOnly = true)
+    public List<EventResponse> getUpcomingEvents() {
+        return eventRepository.findUpcomingEvents(LocalDateTime.now()).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     private Event findEventOrThrow(String id) {
