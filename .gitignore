@@ -41,3 +41,4 @@ build/
 resources/application.properties
 src/main/resources/application.properties
 .history/
+.env
