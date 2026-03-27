@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -103,7 +104,18 @@ public class QRCodeService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este QR Code foi desativado. Solicite um novo QR Code ao administrador.");
         }
 
-        return qrCode.getSubEvent();
+        SubEvent subEvent = qrCode.getSubEvent();
+        LocalDateTime now = LocalDateTime.now();
+
+        // QR code is only valid while checkin or checkout windows are open
+        if (now.isAfter(subEvent.getCheckinEnd()) && now.isAfter(subEvent.getCheckoutEnd())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "QR Code expirado. O período de check-in e checkout deste evento foi encerrado."
+            );
+        }
+
+        return subEvent;
     }
 
     /**

@@ -20,10 +20,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado com email: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas"));
 
         if (!user.getIsActive()) {
-            throw new UsernameNotFoundException("Usuário inativo");
+            throw new UsernameNotFoundException("Credenciais inválidas");
         }
 
         return new org.springframework.security.core.userdetails.User(

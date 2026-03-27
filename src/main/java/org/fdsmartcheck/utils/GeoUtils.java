@@ -1,4 +1,4 @@
-package org.fdsmartcheck.util;
+package org.fdsmartcheck.utils;
 
 import org.springframework.stereotype.Component;
 

@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/checkin")
 @RequiredArgsConstructor
+@org.springframework.validation.annotation.Validated
 public class CheckController {
 
     private final CheckService checkService;
@@ -39,7 +40,7 @@ public class CheckController {
     }
 
     @GetMapping("/info")
-    public ResponseEntity<CheckInfoResponse> getCheckInfo(@RequestParam String qrCode) {
+    public ResponseEntity<CheckInfoResponse> getCheckInfo(@RequestParam @jakarta.validation.constraints.NotBlank(message = "QR Code é obrigatório") String qrCode) {
         CheckInfoResponse info = checkService.getCheckInfo(qrCode);
         return ResponseEntity.ok(info);
     }

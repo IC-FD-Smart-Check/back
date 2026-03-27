@@ -4,7 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.fdsmartcheck.dto.request.CheckRequest;
-import org.fdsmartcheck.util.GeoUtils;
+import org.fdsmartcheck.dto.request.GeoSignRequest;
+import org.fdsmartcheck.utils.GeoUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,8 @@ public class GeoSecurityService {
 
     private final GeoUtils geoUtils;
     private final ObjectMapper objectMapper;
+
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> usedNonces = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Value("${app.geo.secret-key}")
     private String secretKey;
@@ -50,17 +53,78 @@ public class GeoSecurityService {
         // 1. Validar assinatura
         validateSignature(request);
 
-        // 2. Validar timestamp (anti-replay)
+        // 2. Validar nonce (anti-replay)
+        validateNonce(request.getRequestId());
+
+        // 3. Validar timestamp (anti-replay)
         validateTimestamp(request.getGeoPayload().getTimestamp());
 
-        // 3. Validar distância (se coordenadas do evento estiverem disponíveis)
-        if (eventLat != null && eventLng != null) {
-            validateDistance(
-                    request.getGeoPayload().getLatitude(),
-                    request.getGeoPayload().getLongitude(),
-                    eventLat,
-                    eventLng,
-                    customRadius
+        // 4. Validar distância (coordenadas do evento são obrigatórias)
+        if (eventLat == null || eventLng == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Este subevento não possui localização configurada. Check-in presencial não pode ser validado."
+            );
+        }
+
+        double userLat = request.getGeoPayload().getLatitude();
+        double userLng = request.getGeoPayload().getLongitude();
+
+        if (userLat == 0.0 && userLng == 0.0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Coordenadas inválidas. Verifique se o GPS está ativado e tente novamente."
+            );
+        }
+
+        validateDistance(userLat, userLng, eventLat, eventLng, customRadius);
+    }
+
+    /**
+     * Assina um payload de geolocalização e retorna a assinatura HMAC-SHA256
+     *
+     * @param request Dados de geolocalização a assinar
+     * @return Assinatura hexadecimal do payload
+     */
+    public String signPayload(GeoSignRequest request) {
+        if (request.getLatitude() == 0.0 && request.getLongitude() == 0.0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Coordenadas inválidas. Verifique se o GPS está ativado."
+            );
+        }
+
+        try {
+            TreeMap<String, Object> sortedMap = new TreeMap<>();
+            sortedMap.put("deviceId", request.getDeviceId());
+            sortedMap.put("latitude", request.getLatitude());
+            sortedMap.put("longitude", request.getLongitude());
+            sortedMap.put("timestamp", request.getTimestamp());
+
+            String payloadJson = objectMapper.writeValueAsString(sortedMap);
+            return generateSignature(payloadJson);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Erro ao assinar payload de geolocalização"
+            );
+        }
+    }
+
+    /**
+     * Valida nonce para prevenir replay attacks
+     */
+    private void validateNonce(String requestId) {
+        long now = System.currentTimeMillis();
+        // Clean up expired nonces (older than maxTimeDiffSeconds * 2)
+        usedNonces.entrySet().removeIf(entry -> now - entry.getValue() > maxTimeDiffSeconds * 2000);
+
+        if (usedNonces.putIfAbsent(requestId, now) != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Requisição duplicada. Este check-in já foi processado."
             );
         }
     }

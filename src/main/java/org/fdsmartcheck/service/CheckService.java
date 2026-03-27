@@ -2,6 +2,8 @@ package org.fdsmartcheck.service;
 
 import lombok.RequiredArgsConstructor;
 import org.fdsmartcheck.dto.request.CheckRequest;
+import org.fdsmartcheck.model.enums.CheckType;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.fdsmartcheck.dto.response.CheckInfoResponse;
 import org.fdsmartcheck.dto.response.CheckResponse;
 import org.fdsmartcheck.model.Check;
@@ -57,9 +59,9 @@ public class CheckService {
                 targetRadius
         );
 
-        if ("CHECKIN".equalsIgnoreCase(request.getType())) {
+        if (CheckType.CHECKIN.equals(request.getType())) {
             return performCheckIn(subEvent, currentUser, request);
-        } else if ("CHECKOUT".equalsIgnoreCase(request.getType())) {
+        } else if (CheckType.CHECKOUT.equals(request.getType())) {
             return performCheckOut(subEvent, currentUser, request);
         } else {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo inválido. Use CHECKIN ou CHECKOUT");
@@ -100,9 +102,12 @@ public class CheckService {
                 .isPresent(true)
                 .build();
 
-        Check savedCheck = checkRepository.save(check);
-
-        return toResponse(savedCheck);
+        try {
+            Check savedCheck = checkRepository.save(check);
+            return toResponse(savedCheck);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você já realizou check-in neste sub-evento");
+        }
     }
 
     @Transactional
