@@ -15,11 +15,12 @@ public class UserRequest {
     
     @NotBlank(message = "Nome é obrigatório")
     private String name;
-    
-    @NotBlank(message = "Email é obrigatório")
+
     @Email(message = "Email inválido")
     private String email;
-    
+
+    private String ra;
+
     @NotBlank(message = "Senha é obrigatória")
     private String password;
     

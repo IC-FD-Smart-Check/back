@@ -76,7 +76,9 @@ public class SubscriptionService {
                 .id(subscription.getId())
                 .userId(subscription.getUser().getId())
                 .userName(subscription.getUser().getName())
-                .userEmail(subscription.getUser().getEmail())
+                .userEmail(subscription.getUser().getEmail() != null
+                        ? subscription.getUser().getEmail()
+                        : subscription.getUser().getRa())
                 .subEventId(subscription.getSubEvent().getId())
                 .subEventTitle(subscription.getSubEvent().getTitle())
                 .createdAt(subscription.getCreatedAt())

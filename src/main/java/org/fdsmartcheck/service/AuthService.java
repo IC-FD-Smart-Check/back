@@ -35,8 +35,9 @@ public class AuthService {
     private static final long LOCKOUT_DURATION_MS = 5 * 60 * 1000L; // 5 minutes
 
     public LoginResponse login(LoginRequest request) {
-        String email = request.getEmail().toLowerCase();
-        Long lockedUntil = lockoutUntil.get(email);
+        String rawIdentifier = request.getIdentifier().trim();
+        String identifier = rawIdentifier.contains("@") ? rawIdentifier.toLowerCase() : rawIdentifier;
+        Long lockedUntil = lockoutUntil.get(identifier);
         if (lockedUntil != null && System.currentTimeMillis() < lockedUntil) {
             long secondsLeft = (lockedUntil - System.currentTimeMillis()) / 1000;
             throw new BadRequestException("Conta temporariamente bloqueada. Tente novamente em " + secondsLeft + " segundos.");
@@ -46,39 +47,40 @@ public class AuthService {
         Authentication authentication;
         try {
             authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+                    new UsernamePasswordAuthenticationToken(identifier, request.getPassword())
             );
         } catch (org.springframework.security.core.AuthenticationException e) {
-            int attempts = failedAttempts.merge(email, 1, Integer::sum);
+            int attempts = failedAttempts.merge(identifier, 1, Integer::sum);
             if (attempts >= MAX_ATTEMPTS) {
-                lockoutUntil.put(email, System.currentTimeMillis() + LOCKOUT_DURATION_MS);
-                failedAttempts.remove(email);
+                lockoutUntil.put(identifier, System.currentTimeMillis() + LOCKOUT_DURATION_MS);
+                failedAttempts.remove(identifier);
                 throw new BadRequestException("Conta bloqueada após " + MAX_ATTEMPTS + " tentativas. Tente novamente em 5 minutos.");
             }
-            throw new BadRequestException("Email ou senha inválidos");
+            throw new BadRequestException("Email/RA ou senha inválidos");
         }
 
         // Clear failed attempts on success
-        failedAttempts.remove(email);
-        lockoutUntil.remove(email);
+        failedAttempts.remove(identifier);
+        lockoutUntil.remove(identifier);
 
-        // Buscar usuário
-        User user = userRepository.findByEmail(email)
+        // Gerar token
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String token = jwtTokenProvider.generateToken(userDetails);
+
+        // Buscar usuário (username do principal é sempre o id, independente de ter logado por email ou RA)
+        User user = userRepository.findById(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         if (!user.getIsActive()) {
             throw new BadRequestException("Usuário inativo");
         }
 
-        // Gerar token
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtTokenProvider.generateToken(userDetails);
-
         // Construir resposta
         UserResponse userResponse = UserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .ra(user.getRa())
                 .role(user.getRole())
                 .build();
 

@@ -23,13 +23,21 @@ public class UserService {
 
     // método createUser
     public UserResponse createUser(UserRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        validateEmailOrRaPresent(request);
+
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email já cadastrado");
+        }
+        if (request.getRa() != null && !request.getRa().isBlank()
+                && userRepository.existsByRa(request.getRa())) {
+            throw new BadRequestException("RA já cadastrado");
         }
 
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
+                .ra(request.getRa())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
                 .isActive(true)
@@ -45,12 +53,22 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+        validateEmailOrRaPresent(request);
+
+        boolean emailChanged = !java.util.Objects.equals(user.getEmail(), request.getEmail());
+        if (emailChanged && request.getEmail() != null && !request.getEmail().isBlank()
+                && userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("Email já cadastrado");
+        }
+        boolean raChanged = !java.util.Objects.equals(user.getRa(), request.getRa());
+        if (raChanged && request.getRa() != null && !request.getRa().isBlank()
+                && userRepository.existsByRa(request.getRa())) {
+            throw new BadRequestException("RA já cadastrado");
         }
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
+        user.setRa(request.getRa());
         user.setRole(request.getRole());
 
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
@@ -62,6 +80,14 @@ public class UserService {
 
     }
 
+    private void validateEmailOrRaPresent(UserRequest request) {
+        boolean hasEmail = request.getEmail() != null && !request.getEmail().isBlank();
+        boolean hasRa = request.getRa() != null && !request.getRa().isBlank();
+        if (!hasEmail && !hasRa) {
+            throw new BadRequestException("Informe email ou RA");
+        }
+    }
+
     // método getAllUsers
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
@@ -70,9 +96,9 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    // método searchUsers por nome ou email
+    // método searchUsers por nome, email ou RA
     public List<UserResponse> searchUsers(String query) {
-        return userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query).stream()
+        return userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrRaContainingIgnoreCase(query, query, query).stream()
                 .filter(User::getIsActive)
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
@@ -103,6 +129,7 @@ public class UserService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
+                .ra(user.getRa())
                 .role(user.getRole())
                 .build();
     }
