@@ -1,27 +1,25 @@
 package org.fdsmartcheck.dto.response;
 
-import org.fdsmartcheck.model.enums.Role;
-import org.fdsmartcheck.model.enums.Semester;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.fdsmartcheck.model.enums.Semester;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponse {
+public class ClassGroupResponse {
     private String id;
     private String name;
-    private String email;
-    private String ra;
-    private Role role;
-
-    // Turma do aluno (null para ADMIN)
-    private String classGroupId;
-    private String classGroupName;
+    private String externalCode;
     private Semester semester;
+    private Integer semesterNumber;
     private String courseId;
     private String courseName;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

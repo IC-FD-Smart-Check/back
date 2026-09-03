@@ -9,19 +9,26 @@ import org.fdsmartcheck.dto.request.UserRequest;
 import org.fdsmartcheck.dto.response.UserResponse;
 import org.fdsmartcheck.exception.BadRequestException;
 import org.fdsmartcheck.exception.ResourceNotFoundException;
+import org.fdsmartcheck.model.ClassGroup;
 import org.fdsmartcheck.model.User;
+import org.fdsmartcheck.model.enums.Role;
+import org.fdsmartcheck.repository.ClassGroupRepository;
 import org.fdsmartcheck.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final ClassGroupRepository classGroupRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserResponseMapper userResponseMapper;
 
     // método createUser
+    @Transactional
     public UserResponse createUser(UserRequest request) {
         validateEmailOrRaPresent(request);
 
@@ -34,12 +41,17 @@ public class UserService {
             throw new BadRequestException("RA já cadastrado");
         }
 
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new BadRequestException("Senha é obrigatória");
+        }
+
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .ra(request.getRa())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(request.getRole())
+                .classGroup(resolveClassGroup(request))
                 .isActive(true)
                 .build();
 
@@ -49,6 +61,7 @@ public class UserService {
     }
 
     // método updateUser
+    @Transactional
     public UserResponse updateUser(String id, UserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
@@ -70,6 +83,7 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setRa(request.getRa());
         user.setRole(request.getRole());
+        user.setClassGroup(resolveClassGroup(request));
 
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -89,22 +103,23 @@ public class UserService {
     }
 
     // método getAllUsers
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
-                .filter(User::getIsActive)
+        return userRepository.findAllActiveWithClassGroup().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     // método searchUsers por nome, email ou RA
+    @Transactional(readOnly = true)
     public List<UserResponse> searchUsers(String query) {
-        return userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrRaContainingIgnoreCase(query, query, query).stream()
-                .filter(User::getIsActive)
+        return userRepository.searchActiveWithClassGroup(query).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     // método getUserById
+    @Transactional(readOnly = true)
     public UserResponse getUserById(String id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
@@ -117,6 +132,7 @@ public class UserService {
     }
 
     // método deleteUser (soft delete)
+    @Transactional
     public void deleteUser(String id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
@@ -124,13 +140,33 @@ public class UserService {
         userRepository.save(user);
     }
 
-    private UserResponse mapToResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .ra(user.getRa())
-                .role(user.getRole())
-                .build();
+    /**
+     * Resolve a turma do usuário conforme o papel:
+     * - STUDENT: turma é obrigatória e precisa existir
+     * - ADMIN: turma não é aceita (usuário sem vínculo de turma)
+     */
+    private ClassGroup resolveClassGroup(UserRequest request) {
+        String classGroupId = request.getClassGroupId();
+        boolean classGroupInformed = classGroupId != null && !classGroupId.isBlank();
+
+        if (Role.STUDENT.equals(request.getRole())) {
+            if (!classGroupInformed) {
+                throw new BadRequestException("Turma é obrigatória para usuários com papel STUDENT");
+            }
+
+            return classGroupRepository.findById(classGroupId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Turma não encontrada"));
+        }
+
+        if (classGroupInformed) {
+            throw new BadRequestException("Apenas usuários com papel STUDENT podem ser vinculados a uma turma");
+        }
+
+        return null;
     }
+
+    private UserResponse mapToResponse(User user) {
+        return userResponseMapper.toResponse(user);
+    }
+
 }

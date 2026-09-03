@@ -28,6 +28,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final UserResponseMapper userResponseMapper;
 
     private final java.util.concurrent.ConcurrentHashMap<String, Integer> failedAttempts = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.concurrent.ConcurrentHashMap<String, Long> lockoutUntil = new java.util.concurrent.ConcurrentHashMap<>();
@@ -68,7 +69,7 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(userDetails);
 
         // Buscar usuário (username do principal é sempre o id, independente de ter logado por email ou RA)
-        User user = userRepository.findById(userDetails.getUsername())
+        User user = userRepository.findByIdWithClassGroup(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         if (!user.getIsActive()) {
@@ -76,13 +77,7 @@ public class AuthService {
         }
 
         // Construir resposta
-        UserResponse userResponse = UserResponse.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .ra(user.getRa())
-                .role(user.getRole())
-                .build();
+        UserResponse userResponse = userResponseMapper.toResponse(user);
 
         return LoginResponse.builder()
                 .token(token)

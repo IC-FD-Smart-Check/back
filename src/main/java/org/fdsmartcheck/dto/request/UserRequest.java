@@ -21,9 +21,12 @@ public class UserRequest {
 
     private String ra;
 
-    @NotBlank(message = "Senha é obrigatória")
+    // Obrigatória na criação; opcional na atualização (validado em UserService)
     private String password;
     
     @NotNull(message = "Papel é obrigatório")
     private Role role;
+
+    // Obrigatório quando role = STUDENT; não deve ser enviado para ADMIN
+    private String classGroupId;
 }

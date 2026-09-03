@@ -15,4 +15,7 @@ import java.util.Optional;
 public interface EventRepository extends JpaRepository<Event, String> {
     @Query("SELECT e FROM Event e WHERE e.endDate > :now AND e.status = 'ACTIVE' ORDER BY e.startDate ASC")
     List<Event> findUpcomingEvents(@Param("now") LocalDateTime now);
+
+    @Query("SELECT COUNT(e) FROM Event e WHERE e.endDate > :now AND e.status = 'ACTIVE'")
+    long countActiveEvents(@Param("now") LocalDateTime now);
 }

@@ -1,6 +1,5 @@
 package org.fdsmartcheck.model;
 
-import org.fdsmartcheck.model.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -10,41 +9,24 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "courses")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class Course {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 
-    @Column(unique = true)
-    private String email;
-
-    @Column(unique = true)
-    private String ra;
-
-    @Column(nullable = false)
-    private String password;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
-
-    @Column(name = "is_active")
-    private Boolean isActive = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_group_id")
-    private ClassGroup classGroup;
+    @Column(name = "duration_in_semesters", nullable = false)
+    private Integer durationInSemesters;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
