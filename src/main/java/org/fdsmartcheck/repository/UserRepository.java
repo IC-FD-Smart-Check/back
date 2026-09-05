@@ -1,6 +1,7 @@
 package org.fdsmartcheck.repository;
 
 import org.fdsmartcheck.model.User;
+import org.fdsmartcheck.model.enums.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,8 @@ public interface UserRepository extends JpaRepository<User, String> {
             String name, String email, String ra);
 
     long countByClassGroupIdAndIsActiveTrue(String classGroupId);
+
+    boolean existsByRole(Role role);
 
     // Busca por id porque o principal autenticado passou a ser o user.getId()
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.classGroup cg LEFT JOIN FETCH cg.course WHERE u.id = :id")

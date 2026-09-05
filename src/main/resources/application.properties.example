@@ -28,3 +28,9 @@ spring.jackson.time-zone=America/Sao_Paulo
 app.geo.secret-key=
 app.geo.max-time-diff-seconds=60
 app.geo.default-radius-meters=100
+
+# Admin inicial (criado so quando nao existe nenhum ADMIN no banco)
+app.admin.enabled=true
+app.admin.name=Administrador
+app.admin.email=admin@fdsmartcheck.local
+app.admin.password=
